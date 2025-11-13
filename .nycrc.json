@@ -1,0 +1,19 @@
+{
+  "all": true,
+  "check-coverage": false,
+  "reporter": [
+    "text",
+    "text-summary",
+    "html",
+    "lcov"
+  ],
+  "exclude": [
+    "test/**",
+    "node_modules/**",
+    ".nyc_output/**",
+    "coverage/**",
+    "eslint.config.mjs",
+    "server.js"
+  ]
+}
+

@@ -1,11 +1,14 @@
-name: Node.js CI (Yarn)
+name: CI/CD Pipeline
+
 on: 
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+
 jobs:
-  build-and-test:
+  # Job 1: Test, Lint, and Coverage
+  test-and-lint:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -13,16 +16,55 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      
       - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'yarn'
+      
       - name: Display Node.js version
         run: node --version
+      
       - name: Install dependencies
         run: yarn install --frozen-lockfile
+      
       - name: Lint code
         run: yarn lint
+      
       - name: Run tests
         run: yarn test
+      
+      - name: Run tests with coverage
+        run: yarn test:coverage
+      
+      - name: Upload coverage reports as artifact
+        uses: actions/upload-artifact@v4
+        if: matrix.node-version == '20.x'  # Only upload once
+        with:
+          name: coverage-report
+          path: |
+            coverage/
+            .nyc_output/
+          retention-days: 30
+
+  # Job 2: Deploy (only runs on main branch after tests pass)
+  deploy:
+    needs: test-and-lint
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      # Option 1: Deploy to Vercel
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
+        continue-on-error: true  # Continue if Vercel secrets not set
+      
+     
